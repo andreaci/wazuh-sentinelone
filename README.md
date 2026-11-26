@@ -4,7 +4,7 @@ A small .NET 10 service that reads SentinelOne data through the Management API a
 lines that Wazuh ingests, decodes and alerts on.
 
 ```
-SentinelOne API ──► s1wazuh ──► sentinelone-*.json ──► Wazuh logcollector ──► rules 100100+ ──► alerts / dashboard
+SentinelOne API ──► s1wazuh ──► sentinelone-*.json ──► Wazuh logcollector ──► rules 110100+ ──► alerts / dashboard
  (read-only token)  (poll +      (NDJSON files)         (json log_format)
                      checkpoint)
 ```
@@ -228,30 +228,31 @@ able to read the files (the install script sets this up for Option A).
 sudo install -m 640 -o root -g wazuh deploy/wazuh/sentinelone_rules.xml /var/ossec/etc/rules/sentinelone_rules.xml
 sudo systemctl restart wazuh-manager
 ```
-(`install.sh` already does the copy.) Rule IDs `100100`–`100150` are in Wazuh's custom range. Change them
+(`install.sh` already does the copy.) Rule IDs `110100`–`110150` are in Wazuh's custom range (100000–120000). Change them
 if they clash with your own rules.
 
 | Rule | Level | Triggers on |
 |---|---|---|
-| 100100 | 3 | any SentinelOne event (base) |
-| 100110 | 7 | threat |
-| 100111 | 9 | threat, confidence `suspicious` |
-| 100112 | 12 | threat, confidence `malicious` |
-| 100113 | 14 | malicious threat and `not_mitigated` |
-| 100114 | 5 | threat marked as benign |
-| 100120 | 7 | unified alert |
-| 100121 | 10 | alert severity HIGH |
-| 100122 | 13 | alert severity CRITICAL |
-| 100130 | 3 | console activity |
-| 100131 | 8 | failed console login |
-| 100140 | 3 | agent record |
-| 100141 | 10 | agent reports an active infection |
-| 100142 | 5 | agent inactive/offline |
-| 100143 | 4 | agent out of date |
-| 100150 | 3 | Deep Visibility event |
+| 110100 | 3 | any SentinelOne event (base) |
+| 110101 | 3 | same, when generic rule 1002 matched first (second parent) |
+| 110110 | 7 | threat |
+| 110111 | 9 | threat, confidence `suspicious` |
+| 110112 | 12 | threat, confidence `malicious` |
+| 110113 | 14 | malicious threat and `not_mitigated` |
+| 110114 | 5 | threat marked as benign |
+| 110120 | 7 | unified alert |
+| 110121 | 10 | alert severity HIGH |
+| 110122 | 13 | alert severity CRITICAL |
+| 110130 | 3 | console activity |
+| 110131 | 8 | failed console login |
+| 110140 | 3 | agent record |
+| 110141 | 10 | agent reports an active infection |
+| 110142 | 5 | agent inactive/offline |
+| 110143 | 4 | agent out of date |
+| 110150 | 3 | Deep Visibility event |
 
 Tune levels to your noise tolerance. Many tenants have lots of `suspicious` + `not_mitigated` threats,
-so rule 100111 may be chatty at first.
+so rule 110111 may be chatty at first.
 
 ### 4.3 Test the rules before going live
 
