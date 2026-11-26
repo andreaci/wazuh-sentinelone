@@ -107,30 +107,40 @@ Pick one option.
 
 ### Option A: Linux binary on the Wazuh manager (recommended)
 
-1. Download `s1wazuh-<version>-linux-x64.tar.gz` from the GitHub release (or build, see
-   [section 9](#9-development)) and extract it:
-   ```bash
-   mkdir s1wazuh && tar -xzf s1wazuh-*-linux-x64.tar.gz -C s1wazuh && cd s1wazuh
-   ```
-2. Install (as root). This creates `/opt/s1wazuh`, `/var/lib/s1wazuh`, `/var/ossec/logs/sentinelone`,
-   the systemd unit, and copies the Wazuh rules:
-   ```bash
-   sudo ./deploy/install.sh
-   ```
-3. Put the secret and tenant in the env file (kept `chmod 600`):
-   ```bash
-   sudo tee /etc/s1wazuh/s1wazuh.env >/dev/null <<'EOF'
-   SentinelOne__BaseUrl=https://YOURTENANT.sentinelone.net
-   SentinelOne__ApiToken=PASTE_TOKEN_HERE
-   EOF
-   sudo chmod 600 /etc/s1wazuh/s1wazuh.env
-   ```
-4. Adjust `/etc/s1wazuh/appsettings.json` if needed (sources, intervals, scope).
-5. [Configure Wazuh](#4-configure-wazuh), then start the collector:
-   ```bash
-   sudo systemctl enable --now s1wazuh
-   journalctl -u s1wazuh -f
-   ```
+One installer does everything. On the Wazuh manager:
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/andreaci/wazuh-sentinelone/refs/heads/main/deploy/install.sh
+chmod +x install.sh
+sudo ./install.sh
+```
+
+It will:
+
+1. Download the **latest release** (`releases/latest/download/s1wazuh-linux-x64.tar.gz`) and verify its SHA-256.
+2. **Ask for the SentinelOne console URL and API token** (input hidden), then test the token with one read-only call.
+3. Install the binary to `/opt/s1wazuh`, config to `/etc/s1wazuh/` (secret in `s1wazuh.env`, `chmod 600`),
+   state to `/var/lib/s1wazuh`, and the `s1wazuh` systemd service.
+4. Install the Wazuh rules and add the `<localfile>` block to `ossec.conf` (backup saved as
+   `ossec.conf.s1wazuh.bak`).
+5. Validate the Wazuh configuration with `wazuh-analysisd -t`; if Wazuh rejects it, the installer reverts its
+   changes and restarts nothing.
+6. Restart `wazuh-manager` (asks first), then enable and start `s1wazuh` and show its first log lines.
+
+Re-run it any time to **upgrade**: the binary is replaced and your existing configuration is kept
+(it asks whether to keep it). Adjust sources, intervals or scope afterwards in
+`/etc/s1wazuh/appsettings.json` and `systemctl restart s1wazuh`.
+
+Options (environment variables):
+
+| Variable | Effect |
+|---|---|
+| `S1WAZUH_VERSION=v0.1.0` | Install a specific release instead of the latest |
+| `S1_URL`, `S1_TOKEN` | Skip the prompts (unattended installs; prefer the prompt so the token stays out of shell history) |
+| `S1WAZUH_YES=1` | Answer "yes" to all confirmations |
+
+Requirements: root, a Wazuh manager on this host (`/var/ossec`, user `wazuh`), `curl`, `tar`,
+`sha256sum`, `systemd`, x86-64.
 
 ### Option B: Docker
 
@@ -171,7 +181,7 @@ Container files are written as root; make them readable by the `wazuh` user
 For when the collector runs on a separate Windows host. A **Wazuh agent** on that host forwards
 the files to your (Linux) manager.
 
-1. Download `s1wazuh-<version>-win-x64.zip` from the release and extract it.
+1. Download `s1wazuh-win-x64.zip` from the [latest release](https://github.com/andreaci/wazuh-sentinelone/releases/latest/download/s1wazuh-win-x64.zip) and extract it.
 2. In an **elevated** PowerShell from the extracted folder:
    ```powershell
    .\deploy\install-windows.ps1 -BaseUrl https://YOURTENANT.sentinelone.net -ApiToken (Read-Host -AsSecureString "Token")
@@ -303,6 +313,8 @@ collecting**, so rotate before expiry and set a calendar reminder ~5 days ahead.
 git tag v1.0.0 && git push origin v1.0.0
 ```
 Version is taken from the tag (`v1.0.0` → `1.0.0`); other builds are `0.0.0-ci.<run number>`.
+Release assets have **fixed names** (`s1wazuh-linux-x64.tar.gz`, `s1wazuh-win-x64.zip`, plus `.sha256`), so the permalink
+`https://github.com/andreaci/wazuh-sentinelone/releases/latest/download/<asset>` always points at the newest release.
 
 Repository setup: no secrets are needed. The workflow uses the built-in `GITHUB_TOKEN`. Under
 *Settings → Actions → General → Workflow permissions* allow read/write so it can publish packages

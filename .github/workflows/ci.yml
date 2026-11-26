@@ -71,7 +71,7 @@ jobs:
       - name: Archive
         id: pack
         run: |
-          name="s1wazuh-${{ needs.version.outputs.version }}-${{ matrix.rid }}.${{ matrix.archive }}"
+          name="s1wazuh-${{ matrix.rid }}.${{ matrix.archive }}"
           cd publish
           if [ "${{ matrix.archive }}" = "zip" ]; then
             (cd ${{ matrix.rid }} && zip -qr "../../$name" .)
