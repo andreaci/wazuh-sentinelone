@@ -1,0 +1,9 @@
+bin/
+obj/
+publish/
+*.user
+.vs/
+# never commit secrets
+*.env
+s1token*
+appsettings.*.local.json

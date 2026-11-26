@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="S1Wazuh.Collector/S1Wazuh.Collector.csproj" />
+  <Project Path="S1Wazuh.Tests/S1Wazuh.Tests.csproj" />
+</Solution>

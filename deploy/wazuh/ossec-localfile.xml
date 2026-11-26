@@ -1,0 +1,5 @@
+<!-- Add inside <ossec_config> in /var/ossec/etc/ossec.conf (manager, or the agent on the collector host). -->
+<localfile>
+  <log_format>json</log_format>
+  <location>/var/ossec/logs/sentinelone/sentinelone-*.json</location>
+</localfile>

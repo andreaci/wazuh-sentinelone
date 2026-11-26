@@ -1,0 +1,21 @@
+[Unit]
+Description=SentinelOne to Wazuh collector
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+User=wazuh
+Group=wazuh
+WorkingDirectory=/opt/s1wazuh
+ExecStart=/opt/s1wazuh/s1wazuh
+# Holds SentinelOne__ApiToken=... (chmod 600, owned by root)
+EnvironmentFile=/etc/s1wazuh/s1wazuh.env
+Restart=always
+RestartSec=10
+NoNewPrivileges=true
+ProtectSystem=full
+ReadWritePaths=/var/ossec/logs/sentinelone /var/lib/s1wazuh
+
+[Install]
+WantedBy=multi-user.target

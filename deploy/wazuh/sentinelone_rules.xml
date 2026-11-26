@@ -1,0 +1,117 @@
+<!--
+  SentinelOne rules. Install to /var/ossec/etc/rules/sentinelone_rules.xml
+  Events are wrapped by the collector:
+    {"integration":"sentinelone","s1_source":"threat|alert|activity|agent|dv_event","s1_id":..,"s1_timestamp":..,"s1":{ ...raw S1 record... }}
+  The built-in "json" decoder is used; no custom decoder is required.
+  NOTE: field names under s1.* follow the S1 API payloads; verify with wazuh-logtest against real samples from your tenant.
+-->
+<group name="sentinelone,">
+
+  <rule id="100100" level="3">
+    <decoded_as>json</decoded_as>
+    <field name="integration">^sentinelone$</field>
+    <description>SentinelOne event</description>
+  </rule>
+
+  <!-- ===== Threats ===== -->
+  <rule id="100110" level="7">
+    <if_sid>100100</if_sid>
+    <field name="s1_source">^threat$</field>
+    <description>SentinelOne threat: $(s1.threatInfo.threatName) on $(s1.agentRealtimeInfo.agentComputerName)</description>
+    <group>sentinelone_threat,</group>
+  </rule>
+
+  <rule id="100111" level="9">
+    <if_sid>100110</if_sid>
+    <field name="s1.threatInfo.confidenceLevel">^suspicious$</field>
+    <description>SentinelOne suspicious threat: $(s1.threatInfo.threatName) on $(s1.agentRealtimeInfo.agentComputerName)</description>
+  </rule>
+
+  <rule id="100112" level="12">
+    <if_sid>100110</if_sid>
+    <field name="s1.threatInfo.confidenceLevel">^malicious$</field>
+    <description>SentinelOne malicious threat: $(s1.threatInfo.threatName) on $(s1.agentRealtimeInfo.agentComputerName)</description>
+  </rule>
+
+  <rule id="100113" level="14">
+    <if_sid>100112</if_sid>
+    <field name="s1.threatInfo.mitigationStatus">^not_mitigated$</field>
+    <description>SentinelOne malicious threat NOT mitigated: $(s1.threatInfo.threatName) on $(s1.agentRealtimeInfo.agentComputerName)</description>
+  </rule>
+
+  <rule id="100114" level="5">
+    <if_sid>100110</if_sid>
+    <field name="s1.threatInfo.mitigationStatus">^marked_as_benign$</field>
+    <description>SentinelOne threat marked as benign: $(s1.threatInfo.threatName)</description>
+  </rule>
+
+  <!-- ===== Alerts (Singularity unified alerts) ===== -->
+  <rule id="100120" level="7">
+    <if_sid>100100</if_sid>
+    <field name="s1_source">^alert$</field>
+    <description>SentinelOne alert: $(s1.name)</description>
+    <group>sentinelone_alert,</group>
+  </rule>
+
+  <rule id="100121" level="10">
+    <if_sid>100120</if_sid>
+    <field name="s1.severity" type="pcre2">(?i)^high$</field>
+    <description>SentinelOne high severity alert: $(s1.name)</description>
+  </rule>
+
+  <rule id="100122" level="13">
+    <if_sid>100120</if_sid>
+    <field name="s1.severity" type="pcre2">(?i)^critical$</field>
+    <description>SentinelOne critical severity alert: $(s1.name)</description>
+  </rule>
+
+  <!-- ===== Activities (console audit log) ===== -->
+  <rule id="100130" level="3">
+    <if_sid>100100</if_sid>
+    <field name="s1_source">^activity$</field>
+    <description>SentinelOne console activity: $(s1.primaryDescription)</description>
+    <group>sentinelone_activity,</group>
+  </rule>
+
+  <rule id="100131" level="8">
+    <if_sid>100130</if_sid>
+    <field name="s1.primaryDescription" type="pcre2">(?i)(failed (to )?log ?in|login failed|invalid (credentials|password))</field>
+    <description>SentinelOne console: failed login - $(s1.primaryDescription)</description>
+    <group>authentication_failed,</group>
+  </rule>
+
+  <!-- ===== Agents (inventory/health) ===== -->
+  <rule id="100140" level="3">
+    <if_sid>100100</if_sid>
+    <field name="s1_source">^agent$</field>
+    <description>SentinelOne agent: $(s1.computerName)</description>
+    <group>sentinelone_agent,</group>
+  </rule>
+
+  <rule id="100141" level="10">
+    <if_sid>100140</if_sid>
+    <field name="s1.infected">^true$</field>
+    <description>SentinelOne agent reports active infection: $(s1.computerName)</description>
+  </rule>
+
+  <rule id="100142" level="5">
+    <if_sid>100140</if_sid>
+    <field name="s1.isActive">^false$</field>
+    <description>SentinelOne agent inactive/offline: $(s1.computerName)</description>
+  </rule>
+
+  <rule id="100143" level="4">
+    <if_sid>100140</if_sid>
+    <field name="s1.isUpToDate">^false$</field>
+    <description>SentinelOne agent out of date: $(s1.computerName)</description>
+  </rule>
+
+  <!-- ===== Deep Visibility events ===== -->
+  <rule id="100150" level="3">
+    <if_sid>100100</if_sid>
+    <field name="s1_source">^dv_event$</field>
+    <description>SentinelOne Deep Visibility event: $(s1.eventType)</description>
+    <group>sentinelone_dv,</group>
+  </rule>
+
+</group>
