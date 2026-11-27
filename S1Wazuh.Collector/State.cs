@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using S1Wazuh.Options;
 
 namespace S1Wazuh;
 
@@ -22,8 +23,12 @@ public sealed class StateStore(IOptions<StateOptions> options)
     public T Load<T>(string name) where T : new()
     {
         var path = Path.Combine(_dir, $"{name}.state.json");
-        if (!File.Exists(path)) return new T();
-        try { return JsonSerializer.Deserialize<T>(File.ReadAllText(path)) ?? new T(); }
+        if (!File.Exists(path))
+            return new T();
+
+        try { 
+            return JsonSerializer.Deserialize<T>(File.ReadAllText(path)) ?? new T(); 
+        }
         catch (JsonException) { return new T(); }
     }
 

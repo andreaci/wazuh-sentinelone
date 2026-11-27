@@ -2,7 +2,9 @@ using System.Net;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
-using S1Wazuh;
+using MsOptions = Microsoft.Extensions.Options.Options;
+using S1Wazuh.Options;
+using S1Wazuh.Pollers;
 using Xunit;
 
 namespace S1Wazuh.Tests;
@@ -34,14 +36,14 @@ public class PollerTests : IDisposable
 
     private (SentinelOneClient client, IOptions<SentinelOneOptions> opt) MakeClient(FakeHandler h)
     {
-        var opt = Options.Create(new SentinelOneOptions { BaseUrl = "https://x.test", ApiToken = "t", RetryBaseDelayMs = 1, MaxRetries = 3, PageSize = 2 });
+        var opt = MsOptions.Create(new SentinelOneOptions { BaseUrl = "https://x.test", ApiToken = "t", RetryBaseDelayMs = 1, MaxRetries = 3, PageSize = 2 });
         var http = new HttpClient(h) { BaseAddress = new Uri("https://x.test/") };
         return (new SentinelOneClient(http, opt, NullLogger<SentinelOneClient>.Instance), opt);
     }
 
     private ListSourcePoller MakePoller(SentinelOneClient c, IOptions<SentinelOneOptions> opt, MemorySink sink, SourceOptions so) =>
-        new("threat", so, c, sink, new StateStore(Options.Create(new StateOptions { Directory = _dir })),
-            opt, Options.Create(new OutputOptions()), NullLogger.Instance);
+        new("threat", so, c, sink, new StateStore(MsOptions.Create(new StateOptions { Directory = _dir })),
+            opt, MsOptions.Create(new OutputOptions()), NullLogger.Instance);
 
     private static SourceOptions Threats() => new()
     {
@@ -96,8 +98,8 @@ public class PollerTests : IDisposable
         var (c, opt) = MakeClient(h);
         var sink = new MemorySink();
         var p = new UnifiedAlertPoller(new UnifiedAlertsOptions(), c, sink,
-            new StateStore(Options.Create(new StateOptions { Directory = _dir })), opt,
-            Options.Create(new OutputOptions()), NullLogger.Instance);
+            new StateStore(MsOptions.Create(new StateOptions { Directory = _dir })), opt,
+            MsOptions.Create(new OutputOptions()), NullLogger.Instance);
 
         await p.RunOnceAsync(default);
         Assert.Equal(2, sink.Lines.Count);
@@ -116,8 +118,8 @@ public class PollerTests : IDisposable
         var h = new FakeHandler(_ => Json("""{"errors":[{"message":"boom"}],"data":null}"""));
         var (c, opt) = MakeClient(h);
         var p = new UnifiedAlertPoller(new UnifiedAlertsOptions(), c, new MemorySink(),
-            new StateStore(Options.Create(new StateOptions { Directory = _dir })), opt,
-            Options.Create(new OutputOptions()), NullLogger.Instance);
+            new StateStore(MsOptions.Create(new StateOptions { Directory = _dir })), opt,
+            MsOptions.Create(new OutputOptions()), NullLogger.Instance);
         await Assert.ThrowsAsync<InvalidOperationException>(() => p.RunOnceAsync(default));
     }
 
@@ -163,7 +165,7 @@ public class PollerTests : IDisposable
     [Fact]
     public void Sink_rotates_by_size()
     {
-        var sink = new NdjsonFileSink(Options.Create(new OutputOptions { Directory = _dir, MaxFileSizeMb = 0, RetainedFiles = 2 }));
+        var sink = new NdjsonFileSink(MsOptions.Create(new OutputOptions { Directory = _dir, MaxFileSizeMb = 0, RetainedFiles = 2 }));
         sink.WriteLines("x", ["a"]);
         sink.WriteLines("x", ["b"]);
         Assert.True(File.Exists(Path.Combine(_dir, "sentinelone-x.json.1")));

@@ -39,11 +39,14 @@ public static class Envelope
         var bySize = s1.Where(p => p.Value is not null)
                        .OrderByDescending(p => p.Value!.ToJsonString().Length)
                        .Select(p => p.Key).ToList();
+
         foreach (var key in bySize)
         {
             s1.Remove(key);
             line = env.ToJsonString();
-            if (System.Text.Encoding.UTF8.GetByteCount(line) <= maxBytes) break;
+
+            if (System.Text.Encoding.UTF8.GetByteCount(line) <= maxBytes) 
+                break;
         }
         return line;
     }

@@ -1,9 +1,8 @@
 using System.Net.Http.Headers;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using S1Wazuh;
+using S1Wazuh.Options;
+using S1Wazuh.Pollers;
 
 var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddSystemd();
@@ -13,6 +12,7 @@ builder.Services.AddOptions<SentinelOneOptions>().BindConfiguration("SentinelOne
     .Validate(o => Uri.TryCreate(o.BaseUrl, UriKind.Absolute, out _), "SentinelOne:BaseUrl must be an absolute URL")
     .Validate(o => !string.IsNullOrWhiteSpace(o.ApiToken), "SentinelOne:ApiToken is required (set env SentinelOne__ApiToken)")
     .ValidateOnStart();
+
 builder.Services.AddOptions<OutputOptions>().BindConfiguration("Output");
 builder.Services.AddOptions<StateOptions>().BindConfiguration("State");
 builder.Services.AddOptions<SourcesOptions>().BindConfiguration("Sources");
@@ -54,6 +54,7 @@ if (sources.DeepVisibility.Enabled)
 {
     if (string.IsNullOrWhiteSpace(sources.DeepVisibility.Query))
         throw new InvalidOperationException("Sources:DeepVisibility:Query is required when DeepVisibility is enabled");
+
     builder.Services.AddSingleton<IHostedService>(sp => new PollingService(
         new DeepVisibilityPoller(sources.DeepVisibility, sp.GetRequiredService<SentinelOneClient>(), sp.GetRequiredService<IEventSink>(),
             sp.GetRequiredService<StateStore>(), sp.GetRequiredService<IOptions<SentinelOneOptions>>(),
@@ -69,14 +70,26 @@ public sealed class PollingService(ISourcePoller poller, ILogger log) : Backgrou
     protected override async Task ExecuteAsync(CancellationToken stop)
     {
         log.LogInformation("Starting poller {Name} every {S}s", poller.Name, poller.IntervalSeconds);
+
         while (!stop.IsCancellationRequested)
         {
-            try { await poller.RunOnceAsync(stop); }
-            catch (OperationCanceledException) when (stop.IsCancellationRequested) { break; }
-            catch (Exception ex) { log.LogError(ex, "Poller {Name} failed; will retry next interval", poller.Name); }
+            try { 
+                await poller.RunOnceAsync(stop); 
+            }
+            catch (OperationCanceledException) when (stop.IsCancellationRequested) 
+            { 
+                break; 
+            }
+            catch (Exception ex) { 
+                log.LogError(ex, "Poller {Name} failed; will retry next interval", poller.Name); 
+            }
 
-            try { await Task.Delay(TimeSpan.FromSeconds(poller.IntervalSeconds), stop); }
-            catch (OperationCanceledException) { break; }
+            try { 
+                await Task.Delay(TimeSpan.FromSeconds(poller.IntervalSeconds), stop); 
+            }
+            catch (OperationCanceledException) { 
+                break; 
+            }
         }
     }
 }

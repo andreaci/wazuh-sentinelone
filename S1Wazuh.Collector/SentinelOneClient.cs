@@ -1,8 +1,8 @@
 using System.Net;
 using System.Text;
 using System.Text.Json.Nodes;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using S1Wazuh.Options;
 
 namespace S1Wazuh;
 
